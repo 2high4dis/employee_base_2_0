@@ -1,0 +1,15 @@
+{% for employee in page_obj %}
+<tr>
+    <th scope="row">{{ employee.id }}</th>
+    <td><a href="{% url 'employee_detail' employee.id %}">{{ employee.full_name }}</a></td>
+    <td>{{ employee.get_post_display }}</td>
+    <td>{{ employee.hire_date }}</td>
+    <td><a href="mailto:{{ employee.email }}">{{ employee.email }}</a></td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="5">
+        No results
+    </td>
+</tr>
+{% endfor %}

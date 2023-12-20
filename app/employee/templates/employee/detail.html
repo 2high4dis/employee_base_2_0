@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ employee.full_name }}{% endblock %}
+
+{% block content %}
+<h1>{{ employee.full_name }}</h1>
+<h3>Post: {{ employee.get_post_display }}</h3>
+<p>Hire Date: {{ employee.hire_date }}</p>
+<p>Email: <a href="mailto:{{ employee.email }}">{{ employee.email }}</a></p>
+{% if user.is_authenticated %}
+<div class="d-grid gap-2">
+    <a class="btn btn-outline-primary" href="{% url 'employee_update' employee.id %}">Update</a>
+    <a class="btn btn-outline-danger" href="{% url 'employee_delete' employee.id %}">Delete</a>
+</div>
+{% endif %}
+<h2>Boss</h2>
+<div class="list-group">
+    {% if employee.parent %}
+    <a href="{% url 'employee_detail' employee.parent.id %}" class="list-group-item list-group-item-action">
+        {{ employee.parent }}
+    </a>
+    {% else %}
+    No subordinates
+    {% endif %}
+</div>
+<h2>Subordinates</h2>
+<div class="list-group">
+    {% for sub in employee.subordinates.all %}
+    <a href="{% url 'employee_detail' sub.id %}" class="list-group-item list-group-item-action">
+        {{ sub }}
+    </a>
+    {% empty %}
+    No subordinates
+    {% endfor %}
+</div>
+{% endblock %}

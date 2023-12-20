@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Detailed list{% endblock %}
+
+{% block content %}
+<form class="d-flex" role="search">
+    <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+    <button class="btn btn-outline-success" type="submit">Search</button>
+</form>
+<table class="table">
+    <thead>
+        <tr>
+            <th scope="col" data-sort="pk">#</th>
+            <th scope="col" data-sort="full_name">Full name</th>
+            <th scope="col" data-sort="post">Post</th>
+            <th scope="col" data-sort="hire_date">Hire date</th>
+            <th scope="col" data-sort="email">Email</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for employee in page_obj %}
+        <tr>
+            <th scope="row">{{ employee.id }}</th>
+            <td><a href="{% url 'employee_detail' employee.id %}">{{ employee.full_name }}</a></td>
+            <td>{{ employee.get_post_display }}</td>
+            <td>{{ employee.hire_date }}</td>
+            <td><a href="mailto:{{ employee.email }}">{{ employee.email }}</a></td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">
+                No results
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="pagination">
+    <span class="step-links">
+        {% if page_obj.has_previous %}
+        <a href="#" data-value="1">&laquo; first</a>
+        <a href="#" data-value="{{ page_obj.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        {% if page_obj.has_next %}
+        <a href="#" data-value="{{ page_obj.next_page_number }}">next</>
+            <a href="#" data-value="{{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+    </span>
+</div>
+{% endblock %}
+
+{% block include_js %}
+{{ page_obj.number|json_script:"page-number" }}
+{{ sorting|default:"pk"|json_script:"sorting" }}
+{% endblock %}
+
+{% block domready %}
+let options = {
+method: 'POST',
+mode: 'same-origin',
+headers: {'X-CSRFToken': csrftoken}
+}
+
+let pageNumber = JSON.parse(
+document.getElementById('page-number').textContent
+);
+
+
+let sortingMethod = JSON.parse(
+document.getElementById('sorting').textContent
+);
+
+const pageChangeUrl = "{% url 'page_change' %}"
+
+function changeHandler (event) {
+event.preventDefault();
+let data = new FormData();
+if (this.hasAttribute('data-sort')) {
+let sorting = (this.dataset.sort === sortingMethod) ? `-${this.dataset.sort}` : this.dataset.sort;
+sortingMethod = sorting;
+}
+if (this.hasAttribute('data-value')) {
+pageNumber = this.dataset.value;
+}
+q = document.querySelector('form input').value;
+data.append('q', q);
+data.append('sorting', sortingMethod);
+data.append('page', pageNumber);
+options['body'] = data;
+fetch(pageChangeUrl, options)
+.then(responce => responce.json())
+.then(data => {
+if (data['status'] == 200) {
+document.querySelector('tbody').innerHTML = data['out'];
+let pagination = document.querySelector('.pagination');
+pagination.innerHTML = data['paginator'];
+let links = pagination.querySelectorAll('a');
+links.forEach(link => {
+link.addEventListener('click', changeHandler);
+});
+}
+});
+}
+
+headers = document.querySelectorAll('th[scope="col"]');
+headers.forEach(header => {
+header.addEventListener('click', changeHandler)
+});
+
+let pagination = document.querySelector('.pagination');
+let links = pagination.querySelectorAll('a');
+links.forEach(link => {
+link.addEventListener('click', changeHandler);
+});
+
+let submitBtn = document.querySelector('form button');
+submitBtn.addEventListener('click', changeHandler);
+
+{% endblock %}

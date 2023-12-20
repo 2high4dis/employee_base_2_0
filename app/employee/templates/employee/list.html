@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load mptt_tags %}
+
+{% block content %}
+<h1>Employees</h1>
+<ul class="list-group {% if user.is_authenticated %}sortable{% endif %}" data-state="on">
+    {% recursetree employees %}
+    <li class="list-group-item {% if user.is_authenticated %}draggable{% endif %}" data-id="{{ node.id }}"
+        id="{{ node.id }}">
+        <div>
+            <a href="{% url 'employee_detail' node.id %}">
+                {{ node }}</a>
+            {% if node.level > 0 and not node.is_leaf_node %}
+            <button class="btn btn-dark" data-for="{{ node.id }}" data-state="off">
+                +
+            </button>
+            {% endif %}
+        </div>
+        <ul class="list-group {% if user.is_authenticated %}sortable{% endif %}"
+            data-state="{% if node.is_leaf_node or node.level < 1 %}on{% else %}off{% endif %}">
+            {% if not node.is_leaf_node %}
+            {{ children }}
+            {% endif %}
+        </ul>
+    </li>
+    {% endrecursetree %}
+</ul>
+{% endblock %}
+
+{% block include_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5sortable/0.13.3/html5sortable.min.js"></script>
+{% endblock %}
+
+{% block domready %}
+let options = {
+method: 'POST',
+mode: 'same-origin',
+headers: {'X-CSRFToken': csrftoken}
+}
+
+const swapBossesUrl = "{% url 'swap_bosses' %}";
+
+function sortHandler (ev) {
+child = ev.detail.item;
+parent = ev.detail.destination.container.parentNode;
+old_parent = ev.detail.origin.container.parentNode;
+let data = new FormData();
+data.append('child_id', child.id);
+data.append('parent_id', parent.id);
+options['body'] = data;
+fetch(swapBossesUrl, options)
+.then(responce => responce.json())
+.then(data => {
+if (data['status'] == 200) {
+let list = parent.querySelector('ul');
+let old_list = old_parent.querySelector('ul');
+if (list.children.length == 1) {
+parent.querySelector('div').innerHTML += `<button class="btn btn-dark" data-for="${parent.id}" data-state="on">
+    -
+</button>`;
+parent.querySelector('button').addEventListener('click', toggleHandler);
+} else if (!old_list.children.length) {
+old_parent.querySelector('div button').remove();
+}
+}
+});
+}
+
+const LoadEmployeeUrl = "{% url 'employee_load' %}"
+
+function toggleHandler() {
+if (this.dataset.state === 'off') {
+this.dataset.state = 'on';
+this.innerHTML = '-';
+let data = new FormData();
+data.append('employee_id', this.dataset.for);
+options['body'] = data;
+fetch(LoadEmployeeUrl, options)
+.then(responce => responce.json())
+.then(data => {
+if (data['status'] === 200) {
+let subordinates = document.querySelector(`li[data-id="${this.dataset.for}"] ul`);
+subordinates.innerHTML = data['out'];
+subordinates.dataset.state = 'on';
+initComponents();
+}
+});
+} else if (this.dataset.state === 'on') {
+subordinates = this.parentNode.parentNode.querySelector('ul');
+subordinates.dataset.state = 'off';
+subordinates.innerHTML = '';
+this.dataset.state = 'off';
+this.innerHTML = '+';
+}
+}
+
+function initComponents() {
+let toggleBtns = document.querySelectorAll('.list-group button');
+toggleBtns.forEach(button => {
+button.addEventListener('click', toggleHandler);
+sortable('.sortable[data-state="on"]', {
+items: '.sortable[data-state="on"] > .draggable',
+forcePlaceholderSize: true,
+placeholderClass: 'employee-placeholder',
+acceptFrom: '.sortable[data-state="on"]'
+}).forEach(element => {
+element.addEventListener('sortupdate', sortHandler);
+});
+});
+}
+
+initComponents();
+
+{% endblock %}

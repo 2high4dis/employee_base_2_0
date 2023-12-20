@@ -1,0 +1,21 @@
+{% load mptt_tags %}
+{% recursetree employees %}
+<li class="list-group-item {% if user.is_authenticated %}draggable{% endif %}" data-id="{{ node.id }}"
+    id="{{ node.id }}">
+    <div>
+        <a href="{% url 'employee_detail' node.id %}">
+            {{ node }}</a>
+        {% if node.level > 0 and not node.is_leaf_node %}
+        <button class="btn btn-dark" data-for="{{ node.id }}" data-state="off">
+            +
+        </button>
+        {% endif %}
+    </div>
+    <ul class="list-group {% if user.is_authenticated %}sortable{% endif %}"
+        data-state="{% if node.is_leaf_node %}on{% else %}off{% endif %}">
+        {% if not node.is_leaf_node %}
+        {{ children }}
+        {% endif %}
+    </ul>
+</li>
+{% endrecursetree %}

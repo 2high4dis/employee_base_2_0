@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+{% if employee %}
+Update {{ employee.full_name }}
+{% else %}
+New employee
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<h1>
+    {% if employee %}
+    Update {{ employee.full_name }}
+    {% else %}
+    New employee
+    {% endif %}
+</h1>
+<form action="" method="post">
+    {{ form|crispy }}
+    {% csrf_token %}
+    <div class="form-group">
+        <button class="btn btn-outline-primary" type="submit">Save</button>
+    </div>
+</form>
+{% endblock %}
